@@ -1,30 +1,42 @@
 'use client'
 
-import React, { useState } from 'react';
-
-interface HistoryItem {
-  type: 'gain' | 'use';
-  title: string;
-  date: string;
-  points: number;
-}
+import { useState } from 'react';
+import { PointHistoryItem } from '../../types/api';
+import { usePointHistory } from '../../hooks/useApiData';
 
 interface HistoryModalProps {
   title: string;
-  history: HistoryItem[];
+  history: PointHistoryItem[];
   onClose: () => void;
 }
 
-const HistoryModal = ({ title, history, onClose }: HistoryModalProps) => {
-  const [filter, setFilter] = useState<'all' | 'gain' | 'use'>('all');
+const HistoryModal: React.FC<HistoryModalProps> = ({
+  title,
+  history: initialHistory,
+  onClose
+}) => {
+  const [activeTab, setActiveTab] = useState<string>('all');
   
-  // 履歴フィルタリング
-  const filteredHistory = history.filter(item => {
-    if (filter === 'all') return true;
-    if (filter === 'gain') return item.type === 'gain';
-    if (filter === 'use') return item.type === 'use';
-    return true;
-  });
+  // APIを使用した履歴取得（タブ切り替え時に再取得）
+  const { historyData, filterType, setFilterType, loading } = usePointHistory(
+    20, // より多くの履歴を取得
+    activeTab === 'all' ? 'all' : activeTab === 'gained' ? 'earned' : 'used'
+  );
+  
+  // 日付のフォーマット
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+  };
+  
+  // タブ切り替え処理
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    
+    // APIフィルター設定
+    const apiFilter = tab === 'all' ? 'all' : tab === 'gained' ? 'earned' : 'used';
+    setFilterType(apiFilter);
+  };
   
   return (
     <div className="modal-overlay">
@@ -35,56 +47,53 @@ const HistoryModal = ({ title, history, onClose }: HistoryModalProps) => {
         
         <div className="filter-tabs">
           <button 
-            className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
+            className={`filter-tab ${activeTab === 'all' ? 'active' : ''}`}
+            onClick={() => handleTabChange('all')}
           >
             すべて
           </button>
           <button 
-            className={`filter-tab ${filter === 'gain' ? 'active' : ''}`}
-            onClick={() => setFilter('gain')}
+            className={`filter-tab ${activeTab === 'gained' ? 'active' : ''}`}
+            onClick={() => handleTabChange('gained')}
           >
             獲得
           </button>
           <button 
-            className={`filter-tab ${filter === 'use' ? 'active' : ''}`}
-            onClick={() => setFilter('use')}
+            className={`filter-tab ${activeTab === 'used' ? 'active' : ''}`}
+            onClick={() => handleTabChange('used')}
           >
             使用
           </button>
         </div>
         
         <div className="modal-content">
-          <div className="history-description">
-            <p>ポイントの獲得や使用の履歴</p>
-          </div>
-          
-          <ul className="history-list">
-            {filteredHistory.map((item, index) => (
-              <li key={index} className="history-item">
-                <div className={`history-icon ${item.type === 'use' ? 'history-minus' : ''}`}>
-                  {item.type === 'gain' ? '+' : '-'}
-                </div>
-                <div className="history-details">
-                  <div className="history-title">{item.title}</div>
-                  <div className="history-date">{item.date}</div>
-                </div>
-                <div className={`history-points ${item.type === 'gain' ? 'points-plus' : 'points-minus'}`}>
-                  {item.type === 'gain' ? '+' : '-'}{item.points}
-                </div>
-              </li>
-            ))}
-            
-            {filteredHistory.length === 0 && (
-              <li className="history-empty">
-                <p>履歴がありません</p>
-              </li>
-            )}
-          </ul>
+          {loading ? (
+            <div className="loading">データを読み込み中...</div>
+          ) : historyData.length === 0 ? (
+            <div className="history-empty">履歴がありません</div>
+          ) : (
+            <ul className="history-list">
+              {historyData.map((item) => (
+                <li key={item.id} className="history-item">
+                  <div className={`history-icon ${item.type === 'use' ? 'history-minus' : ''}`}>
+                    {item.type === 'gain' ? '+' : '-'}
+                  </div>
+                  <div className="history-details">
+                    <div className="history-title">{item.title}</div>
+                    <div className="history-date">{formatDate(item.date)}</div>
+                    {item.remarks && <div className="history-remarks">{item.remarks}</div>}
+                  </div>
+                  <div className={`history-points ${item.type === 'gain' ? 'points-plus' : 'points-minus'}`}>
+                    {item.type === 'gain' ? `+${item.points}` : `-${item.points}`}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         
         <div className="modal-actions">
-          <button className="action-button secondary" onClick={onClose}>
+          <button className="action-button" onClick={onClose}>
             戻る
           </button>
         </div>

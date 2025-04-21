@@ -1,0 +1,30 @@
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function middleware(request: NextRequest) {
+  // ログインページと静的リソースへのアクセスはスキップ
+  if (
+    request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/_next') ||
+    request.nextUrl.pathname.startsWith('/api') ||
+    request.nextUrl.pathname.includes('.')
+  ) {
+    return NextResponse.next()
+  }
+
+  // クライアントサイドでlocal storageを使用するため、
+  // ミドルウェアではCookieを確認する方法を提供します
+  const userId = request.cookies.get('userId')?.value
+
+  // ユーザーIDがない場合はログインページにリダイレクト
+  if (!userId) {
+    const loginUrl = new URL('/login', request.url)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}

@@ -1,6 +1,7 @@
-'use client'
+'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import TrainerInfo from '../components/TrainerInfo';
 import EventBanner from '../components/EventBanner';
@@ -9,9 +10,38 @@ import HistoryList from '../components/HistoryList';
 import BottomNav from '../components/BottomNav';
 import UsePointsModal from '../components/modals/UsePointsModal';
 import HistoryModal from '../components/modals/HistoryModal';
+import { useUserData, useBalanceData, usePointHistory, useRedeemableItems } from '../hooks/useApiData';
 
 export default function Home() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // ユーザーIDチェック - 現在のシンプルなバージョンから保持
+  useEffect(() => {
+    // クライアントサイドでのみ実行
+    if (typeof window !== 'undefined') {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        router.push('/login');
+      } else {
+        setIsLoading(false);
+      }
+    }
+  }, [router]);
+  
+  // APIからデータを取得
+  const { userData } = useUserData();
+  const { 
+    balanceData, 
+    updateBalance, 
+    getPoints, 
+    getExpiringPoints, 
+    getUpcomingPoints, 
+    getTotalPoints 
+  } = useBalanceData();
+  const { historyData } = usePointHistory(5);
+  const { items } = useRedeemableItems();
   
   const openModal = (modalType: string) => {
     setActiveModal(modalType);
@@ -21,12 +51,41 @@ export default function Home() {
     setActiveModal(null);
   };
   
+  // ポイント交換後の成功処理
+  const handleExchangeSuccess = (newBalance: number) => {
+    // ユーザー残高の更新
+    if (balanceData) {
+      updateBalance({
+        ...balanceData,
+        current_points: newBalance
+      });
+    }
+    closeModal();
+  };
+
+  // ログアウト処理
+  const handleLogout = () => {
+    localStorage.removeItem('userId');
+    router.push('/login');
+  };
+  
+  if (isLoading) {
+    return <div className="container flex items-center justify-center min-h-screen">読み込み中...</div>;
+  }
+  
   return (
     <div className="container">
-      <Header title="ポイントマスター" />
+      <Header 
+        title="ポイントマスター" 
+        onLogout={handleLogout}
+      />
       
       <main>
-        <TrainerInfo name="トレーナー" level={25} progress={75} />
+        <TrainerInfo 
+          name={userData?.name || "トレーナー"} 
+          level={25} 
+          progress={75} 
+        />
         
         <EventBanner 
           title="ダブルポイントイベント!"
@@ -36,30 +95,14 @@ export default function Home() {
         />
         
         <PointsCard 
-          points={[
-            { type: 'normal', name: '通常ポイント', amount: 3450, expires: '2025年12月31日' },
-            { type: 'limited', name: '期間限定ポイント', amount: 1200, expires: '2025年6月30日' }
-          ]}
-          upcoming={[
-            { type: 'normal', amount: 200, date: '2025/03/20' }
-          ]}
-          expiring={[
-            { type: 'limited', amount: 300, date: '2025/04/01' }
-          ]}
+          points={getPoints()}
+          upcoming={getUpcomingPoints()}
+          expiring={getExpiringPoints()}
           onUsePoints={() => openModal('use')}
           onViewHistory={() => openModal('history')}
         />
         
-        <HistoryList 
-          history={[
-            { type: 'gain', title: 'デイリーログインボーナス', date: '2025/03/13', points: 100 },
-            { type: 'gain', title: 'ミッション達成報酬', date: '2025/03/12', points: 250 },
-            { type: 'use', title: 'アイテム購入', date: '2025/03/10', points: 300 },
-            { type: 'gain', title: 'スペシャルイベント報酬', date: '2025/03/08', points: 500 },
-            { type: 'gain', title: 'レベルアップボーナス', date: '2025/03/05', points: 1000 },
-            { type: 'use', title: 'ガチャ利用', date: '2025/03/01', points: 500 }
-          ]}
-        />
+        <HistoryList history={historyData} />
       </main>
       
       <BottomNav active="points" />
@@ -67,43 +110,28 @@ export default function Home() {
       {activeModal === 'use' && (
         <UsePointsModal
           title="ポイントを使う"
-          points={[
-            { type: 'normal', name: '通常ポイント', amount: 3450, expires: '2025年12月31日' },
-            { type: 'limited', name: '期間限定ポイント', amount: 1200, expires: '2025年6月30日' }
-          ]}
-          items={[
-            { id: 1, image: '/images/gift-card.png', title: '商品 1,000円分', cost: 1000, description: '商品券として使えます' },
-            { id: 2, image: '/images/voucher.png', title: 'お食事券 2,000円分', cost: 2000, description: '全国の提携店で使えます' },
-            { id: 3, image: '/images/ticket.png', title: '映画チケット', cost: 1500, description: '全国の映画館で利用可' },
-            { id: 4, image: '/images/card.png', title: '図書カード 500円分', cost: 500, description: '全国の書店で使えます' },
-            { id: 5, image: '/images/coffee.png', title: 'コーヒーチケット 5枚セット', cost: 1200, description: 'カフェで使えるチケット' }
-          ]}
-          totalPoints={4650}
-          company="ABC株式会社"
-          userName="吉田太郎"
+          points={getPoints()}
+          items={items}
+          totalPoints={getTotalPoints()}
+          company={userData?.company_name || "会社名"}
+          userName={userData?.name || "ユーザー名"}
           onClose={closeModal}
           onExchange={(item) => {
-            // ポイント交換処理
-            alert(`${item.title}と交換しました！`);
-            closeModal();
+            // APIを使ったポイント交換処理
+            handleExchangeSuccess(getTotalPoints() - item.cost);
           }}
         />
       )}
       
-      {activeModal === 'history' && (
-        <HistoryModal
-          title="ポイント履歴"
-          history={[
-            { type: 'gain', title: 'デイリーログインボーナス', date: '2025/03/13', points: 100 },
-            { type: 'gain', title: 'ミッション達成報酬', date: '2025/03/12', points: 250 },
-            { type: 'use', title: 'アイテム購入', date: '2025/03/10', points: 300 },
-            { type: 'gain', title: 'スペシャルイベント報酬', date: '2025/03/08', points: 500 },
-            { type: 'gain', title: 'レベルアップボーナス', date: '2025/03/05', points: 1000 },
-            { type: 'use', title: 'ガチャ利用', date: '2025/03/01', points: 500 }
-          ]}
-          onClose={closeModal}
-        />
-      )}
+      <HistoryList history={historyData as any} />
+
+{activeModal === 'history' && (
+  <HistoryModal
+    title="ポイント履歴"
+    history={historyData as any}
+    onClose={closeModal}
+  />
+)}
     </div>
   );
 }

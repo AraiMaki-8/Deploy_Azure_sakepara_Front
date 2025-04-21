@@ -1,0 +1,54 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function Home() {
+  const [userId, setUserId] = useState<string | null>(null);
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // クライアントサイドでのみ実行
+    if (typeof window !== 'undefined') {
+      const storedUserId = localStorage.getItem('userId');
+      if (!storedUserId) {
+        router.push('/login');
+      } else {
+        setUserId(storedUserId);
+        setIsLoading(false);
+      }
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('userId');
+    router.push('/login');
+  };
+
+  if (isLoading) {
+    return <div className="container p-4">読み込み中...</div>;
+  }
+
+  return (
+    <div className="container p-4">
+      <header className="flex justify-between items-center p-4 bg-blue-500 text-white">
+        <h1 className="text-xl font-bold">ポイントマスター</h1>
+        <button 
+          onClick={handleLogout}
+          className="bg-red-500 px-3 py-1 rounded-full text-sm"
+        >
+          ログアウト
+        </button>
+      </header>
+      
+      <main className="mt-4">
+        <div className="bg-white p-4 rounded shadow">
+          <h2 className="text-lg font-bold">ユーザーID: {userId}</h2>
+          <p className="mt-2">ログインに成功しました！</p>
+          <p>ここにユーザーのポイント情報などが表示されます。</p>
+        </div>
+      </main>
+    </div>
+  );
+}
