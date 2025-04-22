@@ -55,13 +55,19 @@
     <div class="content">
       <h2>デプロイテスト - この文字が見えれば成功です！</h2>
       <p>このページは静的HTMLページです。デプロイテストのために作成されました。</p>
-      <p>APIエンドポイント: <span id="api-url"></span></p>
+      <p>バックエンドの状態: <span style="color: green; font-weight: bold;">デプロイ済み</span> - バックエンドは存在しますが、/api/healthエンドポイントはありません</p>
       
       <div style="margin-top: 20px;">
-        <h3>異なるAPIエンドポイントをテスト</h3>
-        <a href="#" class="btn" id="test-api-health">APIテスト - /api/health</a>
-        <a href="#" class="btn" style="margin-left: 10px;" id="test-api-root">APIテスト - /api</a>
-        <a href="#" class="btn" style="margin-left: 10px;" id="test-api-users">APIテスト - /api/users</a>
+        <h3>実際のAPIエンドポイントテスト</h3>
+        <a href="#" class="btn" id="test-root">APIテスト - ルート(/)</a>
+        <a href="#" class="btn" style="margin-left: 10px;" id="test-users">APIテスト - ユーザー一覧(/users)</a>
+        <a href="#" class="btn" style="margin-left: 10px;" id="test-items">APIテスト - アイテム一覧(/redeemable-items)</a>
+      </div>
+      
+      <div style="margin-top: 20px;">
+        <h3>モックAPIテスト（バックアップ用）</h3>
+        <a href="#" class="btn" id="test-mock-users">モックAPIテスト - ユーザー一覧</a>
+        <a href="#" class="btn" style="margin-left: 10px;" id="test-mock-points">モックAPIテスト - ポイント情報</a>
       </div>
       
       <div id="api-result" style="margin-top: 15px; padding: 10px; background-color: #f8f8f8; border-radius: 4px;"></div>
@@ -69,12 +75,29 @@
   </div>
 
   <script>
-    // 環境変数のAPIエンドポイントを表示
+    // バックエンドのAPIベースURL
     const apiBaseUrl = 'https://tech0-gen-8-step4-sakepara-backend-a9e9e5gedfevbtfa.australiasoutheast-01.azurewebsites.net';
-    document.getElementById('api-url').textContent = apiBaseUrl;
     
-    // API結果表示関数
-    async function testApiEndpoint(endpoint) {
+    // モックデータ
+    const mockData = {
+      users: [
+        { id: 1, name: "テストユーザー1", email: "user1@example.com", points: 500 },
+        { id: 2, name: "テストユーザー2", email: "user2@example.com", points: 750 },
+        { id: 3, name: "テストユーザー3", email: "user3@example.com", points: 1200 }
+      ],
+      points: {
+        available: 1500,
+        used: 500,
+        history: [
+          { id: 1, date: "2025-04-20", points: 100, type: "earned", remarks: "ログインボーナス" },
+          { id: 2, date: "2025-04-21", points: 200, type: "earned", remarks: "購入ポイント" },
+          { id: 3, date: "2025-04-22", points: 50, type: "used", remarks: "商品交換" }
+        ]
+      }
+    };
+    
+    // 実際のAPIエンドポイントをテストする関数
+    async function testRealApiEndpoint(endpoint) {
       const resultElement = document.getElementById('api-result');
       resultElement.textContent = '接続中...';
       resultElement.style.color = '#333';
@@ -90,7 +113,7 @@
         if (response.ok) {
           try {
             const data = await response.json();
-            resultElement.innerHTML += `<p><strong>レスポンス:</strong> ${JSON.stringify(data)}</p>`;
+            resultElement.innerHTML += `<p><strong>レスポンス:</strong></p><pre style="background-color: #f0f0f0; padding: 10px; border-radius: 4px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
             resultElement.style.color = 'green';
           } catch (jsonError) {
             const text = await response.text();
@@ -106,20 +129,47 @@
       }
     }
     
-    // 各テストボタンにイベントリスナーを追加
-    document.getElementById('test-api-health').addEventListener('click', function(e) {
+    // モックAPIレスポンスを表示する関数
+    function displayMockResponse(dataType) {
+      const resultElement = document.getElementById('api-result');
+      
+      let data = mockData[dataType];
+      let responseType = dataType === 'users' ? 'ユーザー一覧' : 'ポイント情報';
+      
+      resultElement.innerHTML = `
+        <p><strong>ステータス:</strong> 200 OK (モック)</p>
+        <p><strong>レスポンスタイプ:</strong> ${responseType}</p>
+        <p><strong>モックレスポンス:</strong></p>
+        <pre style="background-color: #f0f0f0; padding: 10px; border-radius: 4px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>
+      `;
+      resultElement.style.color = 'green';
+    }
+    
+    // 実際のAPIテストボタンのイベントリスナー
+    document.getElementById('test-root').addEventListener('click', function(e) {
       e.preventDefault();
-      testApiEndpoint('/api/health');
+      testRealApiEndpoint('/');
     });
     
-    document.getElementById('test-api-root').addEventListener('click', function(e) {
+    document.getElementById('test-users').addEventListener('click', function(e) {
       e.preventDefault();
-      testApiEndpoint('/api');
+      testRealApiEndpoint('/users');
     });
     
-    document.getElementById('test-api-users').addEventListener('click', function(e) {
+    document.getElementById('test-items').addEventListener('click', function(e) {
       e.preventDefault();
-      testApiEndpoint('/api/users');
+      testRealApiEndpoint('/redeemable-items');
+    });
+    
+    // モックAPIテストボタンのイベントリスナー
+    document.getElementById('test-mock-users').addEventListener('click', function(e) {
+      e.preventDefault();
+      displayMockResponse('users');
+    });
+    
+    document.getElementById('test-mock-points').addEventListener('click', function(e) {
+      e.preventDefault();
+      displayMockResponse('points');
     });
   </script>
 </body>
