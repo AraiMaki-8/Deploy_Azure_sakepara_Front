@@ -3,29 +3,27 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// 静的ファイルの提供
-app.use(express.static(path.join(__dirname, 'out')));
-
-// サーバー起動前にビルドを試行
-const { execSync } = require('child_process');
-const fs = require('fs');
-
+// ログ出力を追加
+console.log('Server starting...');
+console.log('Current directory:', __dirname);
+console.log('Files in public directory:');
 try {
-  console.log('Checking if static export exists...');
-  if (!fs.existsSync('./out')) {
-    console.log('Static export not found. Running build and export...');
-    execSync('npm run build-export', { stdio: 'inherit' });
-  }
+  const fs = require('fs');
+  const files = fs.readdirSync(path.join(__dirname, 'public'));
+  console.log(files);
 } catch (error) {
-  console.error('Error during build process:', error);
-  console.log('Proceeding with server start anyway...');
+  console.error('Error reading public directory:', error.message);
 }
+
+// 静的ファイルを提供
+app.use(express.static(path.join(__dirname, 'public')));
 
 // すべてのリクエストをindex.htmlにルーティング
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'out', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// サーバー起動
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 }); 
