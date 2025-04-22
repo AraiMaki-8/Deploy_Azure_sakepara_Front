@@ -103,7 +103,20 @@
       resultElement.style.color = '#333';
       
       try {
-        const response = await fetch(`${apiBaseUrl}${endpoint}`);
+        // タイムアウト設定を追加
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒でタイムアウト
+        
+        const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+          signal: controller.signal,
+          mode: 'cors', // CORS設定を明示的に指定
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        // タイムアウトをクリア
+        clearTimeout(timeoutId);
         
         resultElement.innerHTML = `
           <p><strong>ステータス:</strong> ${response.status} ${response.statusText}</p>
@@ -127,8 +140,27 @@
           resultElement.style.color = 'red';
         }
       } catch (error) {
-        resultElement.textContent = `API接続エラー: ${error.message}`;
+        // エラーの詳細を表示
+        let errorMessage = `API接続エラー: ${error.message}`;
+        
+        if (error.name === 'AbortError') {
+          errorMessage = 'リクエストがタイムアウトしました (10秒)。バックエンドサーバーが応答していません。';
+        } else if (error.message.includes('CORS')) {
+          errorMessage = `CORSエラー: クロスオリジンリクエストがブロックされました。バックエンドのCORS設定を確認してください。<br>
+          詳細: ${error.message}`;
+        }
+        
+        // 診断情報を追加
+        errorMessage += `<br><br><strong>診断情報:</strong><br>
+        - URL: ${apiBaseUrl}${endpoint}<br>
+        - ブラウザ: ${navigator.userAgent}<br>
+        - 時刻: ${new Date().toISOString()}`;
+        
+        resultElement.innerHTML = errorMessage;
         resultElement.style.color = 'red';
+        
+        // コンソールに詳細を出力
+        console.error('API接続エラー:', error);
       }
     }
     
