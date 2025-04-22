@@ -50,9 +50,9 @@ if (hasNextDir) {
 }
 
 // デバッグページへのアクセス設定
-server.get('/debug-index.html', (req, res) => {
-  if (fs.existsSync(path.join(__dirname, 'public', 'debug-index.html'))) {
-    res.sendFile(path.join(__dirname, 'public', 'debug-index.html'));
+server.get('/debug.html', (req, res) => {
+  if (fs.existsSync(path.join(__dirname, 'public', 'debug.html'))) {
+    res.sendFile(path.join(__dirname, 'public', 'debug.html'));
   } else {
     res.status(404).send('Debug page not found');
   }
@@ -140,22 +140,41 @@ function setupFallbackServer() {
   // デバッグページを返すデフォルトのルート
   server.get('*', (req, res) => {
     try {
-      // デバッグページを返す
-      if (fs.existsSync(path.join(__dirname, 'public', 'debug-index.html'))) {
-        res.sendFile(path.join(__dirname, 'public', 'debug-index.html'));
-      } else {
-        res.send(`
-          <html>
-            <head><title>サーバーステータス</title></head>
-            <body>
-              <h1>サーバーは動作していますが、Next.jsコンテンツをロードできません</h1>
-              <p>現在の時刻: ${new Date().toISOString()}</p>
-              <p>作業ディレクトリ: ${process.cwd()}</p>
-              <p><a href="/debug">デバッグ情報を表示</a></p>
-            </body>
-          </html>
-        `);
-      }
+      // フォールバックHTMLを生成
+      res.send(`
+        <html>
+          <head>
+            <title>サーバーステータス</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+              .container { max-width: 800px; margin: 0 auto; }
+              .card { background: #f9f9f9; border-radius: 5px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+              .btn { display: inline-block; background: #4CAF50; color: white; text-decoration: none; padding: 8px 16px; border-radius: 4px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>Next.jsアプリケーションを読み込めませんでした</h1>
+              
+              <div class="card">
+                <h2>サーバー情報</h2>
+                <p>現在の時刻: ${new Date().toISOString()}</p>
+                <p>作業ディレクトリ: ${process.cwd()}</p>
+                <p>Next.jsディレクトリの存在: ${hasNextDir ? 'はい' : 'いいえ'}</p>
+              </div>
+              
+              <div class="card">
+                <h2>トラブルシューティング</h2>
+                <p>詳細な情報を確認するには以下のリンクをクリックしてください：</p>
+                <p><a href="/debug" class="btn">デバッグ情報を表示</a></p>
+                <p><a href="/debug.html" class="btn">デバッグページを表示</a></p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
     } catch (error) {
       res.status(500).send(`
         <html>
