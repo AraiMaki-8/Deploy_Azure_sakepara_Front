@@ -111,12 +111,15 @@
         `;
         
         if (response.ok) {
+          // レスポンスをクローンして使用することで、二重読み込みを防止
+          const responseClone = response.clone();
           try {
             const data = await response.json();
             resultElement.innerHTML += `<p><strong>レスポンス:</strong></p><pre style="background-color: #f0f0f0; padding: 10px; border-radius: 4px; overflow: auto;">${JSON.stringify(data, null, 2)}</pre>`;
             resultElement.style.color = 'green';
           } catch (jsonError) {
-            const text = await response.text();
+            // JSONとして解析できない場合はテキストとして読み込み
+            const text = await responseClone.text();
             resultElement.innerHTML += `<p><strong>レスポンス (テキスト):</strong> ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}</p>`;
             resultElement.style.color = 'blue';
           }
