@@ -157,6 +157,7 @@ export interface HistoryItem {
   title: string;
   date: string;
   points: number;
+  remarks?: string;
 }
 
 // ポイント履歴を取得するフック（HistoryItem型に変換）
@@ -224,7 +225,8 @@ export const usePointHistory = (limit: number = 5, initialFilterType: string = '
         type: item.points > 0 ? 'gain' : 'use',
         title: item.description,
         date: formattedDate,
-        points: Math.abs(item.points)
+        points: Math.abs(item.points),
+        remarks: item.remarks
       };
     });
   }, [historyData]);
@@ -280,6 +282,10 @@ export const useExchangePoints = (onSuccess?: (remaining: number) => void) => {
     try {
       // ストレージからユーザーIDを取得
       const userId = getUserIdFromStorage();
+      if (userId === null) {
+        setError('ユーザーIDが見つかりません');
+        return { success: false, message: 'ユーザーIDが見つかりません', remaining_points: 0 };
+      }
       const result = await usePoints(userId, itemId, points);
       
       if (result.success) {

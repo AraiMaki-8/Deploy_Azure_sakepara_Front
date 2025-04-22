@@ -76,6 +76,7 @@ export interface HistoryItem {
   title: string;
   date: string;
   points: number;
+  remarks?: string;
 }
 
 // PointHistoryItem型からHistoryItem型への変換関数
@@ -85,6 +86,7 @@ export function convertToHistoryItem(item: PointHistoryItem): HistoryItem {
     type: item.points > 0 ? 'gain' : 'use',
     title: item.description,
     date: new Date(item.date).toLocaleDateString(),
-    points: item.points
+    points: item.points,
+    remarks: item.remarks
   };
 }
