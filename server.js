@@ -1,22 +1,36 @@
 const express = require('express');
 const path = require('path');
-const app = express();
-const port = process.env.PORT || 8080;
+const { parse } = require('url');
+const next = require('next');
 
-// 簡単なログだけ出力
-console.log('Server starting...');
-console.log('Current directory:', __dirname);
-console.log('PORT:', process.env.PORT);
+const dev = process.env.NODE_ENV !== 'production';
+const app = next({ dev });
+const handle = app.getRequestHandler();
+const port = process.env.PORT || 3000;
 
-// 静的ファイルを提供 - publicディレクトリから
-app.use(express.static(path.join(__dirname, 'public')));
+app.prepare().then(() => {
+  const server = express();
 
-// すべてのリクエストをindex.htmlにルーティング
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+  // カスタムサーバーの初期化ログ
+  console.log('Next.jsカスタムサーバー起動中...');
+  console.log('環境:', dev ? '開発' : '本番');
+  console.log('ポート:', port);
 
-// サーバー起動
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  // 静的ファイルを提供
+  server.use(express.static(path.join(__dirname, '.next/static')));
+
+  // Next.jsにすべてのリクエストを処理させる
+  server.all('*', (req, res) => {
+    const parsedUrl = parse(req.url, true);
+    return handle(req, res, parsedUrl);
+  });
+
+  // サーバー起動
+  server.listen(port, (err) => {
+    if (err) throw err;
+    console.log(`> Ready on http://localhost:${port}`);
+  });
+}).catch(err => {
+  console.error('Next.js起動エラー:', err);
+  process.exit(1);
 }); 
