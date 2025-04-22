@@ -36,21 +36,16 @@ jobs:
 
       - name: Install dependencies 
         run: |
-          npm install
+          npm install --legacy-peer-deps
+          npm install next react react-dom --save
           npm install tailwindcss autoprefixer postcss --save-dev
-          npm install express fs path --save
+          npm install express url --save
 
-      - name: Create simple build
+      - name: Build Next.js application
         run: |
-          echo "Creating minimal build structure"
-          mkdir -p .next/static
-          echo "This is a placeholder file" > .next/static/placeholder.txt
-          echo "Build structure created (minimal)"
-          ls -la .next
-          ls -la .next/static
-
-      - name: Try Next.js build (may fail)
-        run: npm run build || echo "Next.js build failed, but continuing with deployment"
+          echo "Building Next.js application"
+          npm run build
+          ls -la .next || echo ".next directory not found after build"
           
       - name: Debug build output
         run: |

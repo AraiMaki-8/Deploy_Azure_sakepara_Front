@@ -49,6 +49,15 @@ if (hasNextDir) {
   }
 }
 
+// デバッグページへのアクセス設定
+server.get('/debug-index.html', (req, res) => {
+  if (fs.existsSync(path.join(__dirname, 'public', 'debug-index.html'))) {
+    res.sendFile(path.join(__dirname, 'public', 'debug-index.html'));
+  } else {
+    res.status(404).send('Debug page not found');
+  }
+});
+
 // デバッグ用エンドポイント
 server.get('/debug', (req, res) => {
   try {
@@ -109,15 +118,6 @@ if (nextApp && handle) {
   // Next.jsの準備
   nextApp.prepare().then(() => {
     console.log('Next.jsの準備が完了しました - アプリケーションを起動します');
-    
-    // デバッグページへの直接アクセスは許可
-    server.get('/debug-index.html', (req, res) => {
-      if (fs.existsSync(path.join(__dirname, 'public', 'debug-index.html'))) {
-        res.sendFile(path.join(__dirname, 'public', 'debug-index.html'));
-      } else {
-        res.status(404).send('Debug page not found');
-      }
-    });
     
     // 他のすべてのリクエストはNext.jsに渡す
     server.all('*', (req, res) => {
