@@ -1,36 +1,31 @@
-const { createServer } = require('http');
-const { parse } = require('url');
-const next = require('next');
+const express = require('express');
+const path = require('path');
+const app = express();
+const port = process.env.PORT || 8080;
+
+// 静的ファイルの提供
+app.use(express.static(path.join(__dirname, 'out')));
+
+// サーバー起動前にビルドを試行
 const { execSync } = require('child_process');
 const fs = require('fs');
 
-// Check if .next directory exists and has the required build files
 try {
-  if (!fs.existsSync('./.next/BUILD_ID')) {
-    console.log('Build files not found, running build process...');
-    execSync('npm run build', { stdio: 'inherit' });
+  console.log('Checking if static export exists...');
+  if (!fs.existsSync('./out')) {
+    console.log('Static export not found. Running build and export...');
+    execSync('npm run build-export', { stdio: 'inherit' });
   }
 } catch (error) {
-  console.log('Error checking build files, running build process...', error);
-  try {
-    execSync('npm run build', { stdio: 'inherit' });
-  } catch (buildError) {
-    console.error('Build process failed:', buildError);
-    process.exit(1);
-  }
+  console.error('Error during build process:', error);
+  console.log('Proceeding with server start anyway...');
 }
 
-const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
-const handle = app.getRequestHandler();
-const port = process.env.PORT || 8080;
+// すべてのリクエストをindex.htmlにルーティング
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'out', 'index.html'));
+});
 
-app.prepare().then(() => {
-  createServer((req, res) => {
-    const parsedUrl = parse(req.url, true);
-    handle(req, res, parsedUrl);
-  }).listen(port, (err) => {
-    if (err) throw err;
-    console.log(`> Ready on http://localhost:${port}`);
-  });
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 }); 
