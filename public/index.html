@@ -56,36 +56,70 @@
       <h2>デプロイテスト - この文字が見えれば成功です！</h2>
       <p>このページは静的HTMLページです。デプロイテストのために作成されました。</p>
       <p>APIエンドポイント: <span id="api-url"></span></p>
-      <a href="#" class="btn" id="test-api">APIテスト</a>
-      <div id="api-result" style="margin-top: 15px;"></div>
+      
+      <div style="margin-top: 20px;">
+        <h3>異なるAPIエンドポイントをテスト</h3>
+        <a href="#" class="btn" id="test-api-health">APIテスト - /api/health</a>
+        <a href="#" class="btn" style="margin-left: 10px;" id="test-api-root">APIテスト - /api</a>
+        <a href="#" class="btn" style="margin-left: 10px;" id="test-api-users">APIテスト - /api/users</a>
+      </div>
+      
+      <div id="api-result" style="margin-top: 15px; padding: 10px; background-color: #f8f8f8; border-radius: 4px;"></div>
     </div>
   </div>
 
   <script>
     // 環境変数のAPIエンドポイントを表示
-    document.getElementById('api-url').textContent = 'https://tech0-gen-8-step4-sakepara-backend-a9e9e5gedfevbtfa.australiasoutheast-01.azurewebsites.net';
+    const apiBaseUrl = 'https://tech0-gen-8-step4-sakepara-backend-a9e9e5gedfevbtfa.australiasoutheast-01.azurewebsites.net';
+    document.getElementById('api-url').textContent = apiBaseUrl;
     
-    // APIテストボタンのイベントリスナー
-    document.getElementById('test-api').addEventListener('click', async function(e) {
-      e.preventDefault();
+    // API結果表示関数
+    async function testApiEndpoint(endpoint) {
       const resultElement = document.getElementById('api-result');
       resultElement.textContent = '接続中...';
+      resultElement.style.color = '#333';
       
       try {
-        const response = await fetch('https://tech0-gen-8-step4-sakepara-backend-a9e9e5gedfevbtfa.australiasoutheast-01.azurewebsites.net/api/health');
+        const response = await fetch(`${apiBaseUrl}${endpoint}`);
+        
+        resultElement.innerHTML = `
+          <p><strong>ステータス:</strong> ${response.status} ${response.statusText}</p>
+          <p><strong>エンドポイント:</strong> ${apiBaseUrl}${endpoint}</p>
+        `;
         
         if (response.ok) {
-          const data = await response.json();
-          resultElement.textContent = 'API接続成功: ' + JSON.stringify(data);
-          resultElement.style.color = 'green';
+          try {
+            const data = await response.json();
+            resultElement.innerHTML += `<p><strong>レスポンス:</strong> ${JSON.stringify(data)}</p>`;
+            resultElement.style.color = 'green';
+          } catch (jsonError) {
+            const text = await response.text();
+            resultElement.innerHTML += `<p><strong>レスポンス (テキスト):</strong> ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}</p>`;
+            resultElement.style.color = 'blue';
+          }
         } else {
-          resultElement.textContent = 'APIエラー: ' + response.status;
           resultElement.style.color = 'red';
         }
       } catch (error) {
-        resultElement.textContent = 'API接続エラー: ' + error.message;
+        resultElement.textContent = `API接続エラー: ${error.message}`;
         resultElement.style.color = 'red';
       }
+    }
+    
+    // 各テストボタンにイベントリスナーを追加
+    document.getElementById('test-api-health').addEventListener('click', function(e) {
+      e.preventDefault();
+      testApiEndpoint('/api/health');
+    });
+    
+    document.getElementById('test-api-root').addEventListener('click', function(e) {
+      e.preventDefault();
+      testApiEndpoint('/api');
+    });
+    
+    document.getElementById('test-api-users').addEventListener('click', function(e) {
+      e.preventDefault();
+      testApiEndpoint('/api/users');
     });
   </script>
 </body>
