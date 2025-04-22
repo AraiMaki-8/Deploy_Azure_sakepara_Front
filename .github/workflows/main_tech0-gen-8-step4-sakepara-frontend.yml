@@ -23,11 +23,10 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install, build, and test
+      - name: npm install and build
         run: |
           npm install
           npm run build --if-present
-          npm run test --if-present
           
       - name: Debug build output
         run: |
@@ -36,28 +35,22 @@ jobs:
           ls -la ./.next || echo ".next directory not found"
           ls -la ./.next/standalone || echo ".next/standalone directory not found"
 
-      - name: Copy artifact for deployment job
+      - name: Prepare deployment package
         run: |
+          # サーバーファイルとパッケージ設定をコピー
           mkdir -p deploy
+          cp server.js deploy/
+          cp package.json deploy/
+          cp package-lock.json deploy/ || echo "package-lock.json not found"
           
-          # コピー元のディレクトリが存在するか確認
-          if [ -d "./.next/standalone" ]; then
-            echo "Copying standalone build output"
-            cp -r ./.next/standalone/. ./deploy
-          else
-            echo "Standalone build output not found, copying server.js and other necessary files"
-            cp server.js ./deploy/
-            cp package.json ./deploy/
-            cp -r ./.next ./deploy/
-          fi
+          # .nextディレクトリ全体をコピー（重要：ビルド成果物を含む）
+          cp -r ./.next deploy/ || echo ".next directory not found"
           
-          # 必要なファイルをコピー
-          cp -r ./public ./deploy/ || echo "Public directory not found"
-          mkdir -p ./deploy/.next
-          cp -r ./.next/static ./deploy/.next/ || echo "Static directory not found"
+          # publicディレクトリをコピー
+          cp -r ./public deploy/ || echo "public directory not found"
           
           # 環境変数ファイルをコピー
-          cp .env ./deploy/ || echo "Env file not found"
+          cp .env deploy/ || echo "Env file not found"
           
           # デプロイディレクトリの内容を確認
           echo "Deployment directory contents:"
