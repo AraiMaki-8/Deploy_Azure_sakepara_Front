@@ -62,6 +62,7 @@
         <a href="#" class="btn" id="test-root">APIテスト - ルート(/)</a>
         <a href="#" class="btn" style="margin-left: 10px;" id="test-users">APIテスト - ユーザー一覧(/users)</a>
         <a href="#" class="btn" style="margin-left: 10px;" id="test-items">APIテスト - アイテム一覧(/redeemable-items)</a>
+        <a href="#" class="btn" style="margin-left: 10px; background-color: #f39c12;" id="test-db-connection">APIテスト - DB接続(/test-db-connection)</a>
       </div>
       
       <div style="margin-top: 20px;">
@@ -194,6 +195,11 @@
     document.getElementById('test-items').addEventListener('click', function(e) {
       e.preventDefault();
       testRealApiEndpoint('/redeemable-items');
+    });
+    
+    document.getElementById('test-db-connection').addEventListener('click', function(e) {
+      e.preventDefault();
+      testRealApiEndpoint('/test-db-connection');
     });
     
     // モックAPIテストボタンのイベントリスナー
