@@ -28,13 +28,41 @@ jobs:
           npm install
           npm run build --if-present
           npm run test --if-present
+          
+      - name: Debug build output
+        run: |
+          echo "Checking build output directories"
+          ls -la
+          ls -la ./.next || echo ".next directory not found"
+          ls -la ./.next/standalone || echo ".next/standalone directory not found"
 
       - name: Copy artifact for deployment job
         run: |
-          mkdir deploy
-          cp -r ./.next/standalone/. ./deploy
-          cp -r ./public ./deploy
-          cp -r ./.next/static/. ./deploy/.next/static
+          mkdir -p deploy
+          
+          # コピー元のディレクトリが存在するか確認
+          if [ -d "./.next/standalone" ]; then
+            echo "Copying standalone build output"
+            cp -r ./.next/standalone/. ./deploy
+          else
+            echo "Standalone build output not found, copying server.js and other necessary files"
+            cp server.js ./deploy/
+            cp package.json ./deploy/
+            cp -r ./.next ./deploy/
+          fi
+          
+          # 必要なファイルをコピー
+          cp -r ./public ./deploy/ || echo "Public directory not found"
+          mkdir -p ./deploy/.next
+          cp -r ./.next/static ./deploy/.next/ || echo "Static directory not found"
+          
+          # 環境変数ファイルをコピー
+          cp .env ./deploy/ || echo "Env file not found"
+          
+          # デプロイディレクトリの内容を確認
+          echo "Deployment directory contents:"
+          ls -la ./deploy
+          ls -la ./deploy/.next || echo "Deploy .next directory not found"
 
       - name: Zip artifact for deployment
         run: zip release.zip ./deploy/* -r
