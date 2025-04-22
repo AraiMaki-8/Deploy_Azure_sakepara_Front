@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>酒パラ - ポイント管理システム</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      background-color: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 2rem;
+      margin: 0;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      text-decoration: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>酒パラ - ポイント管理システム</h1>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>デプロイ成功！</h2>
+      <p>アプリケーションが正常に動作しています。</p>
+      
+      <div>
+        <h3>バックエンド接続テスト</h3>
+        <button class="button" id="testApiRoot">APIテスト - ルート(/)</button>
+        <button class="button" id="testApiUsers">APIテスト - ユーザー一覧(/users)</button>
+      </div>
+      
+      <div id="result" style="margin-top: 20px; padding: 10px; background-color: #f8f8f8; border-radius: 4px; display: none;">
+        <h4>API レスポンス:</h4>
+        <pre id="response" style="overflow-x: auto;"></pre>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>問題のトラブルシューティング</h2>
+      <p>Next.jsアプリケーションがまだ表示されない場合、デバッグページにアクセスして詳細情報を確認できます。</p>
+      <a href="/debug" class="button">デバッグ情報を表示</a>
+      <a href="/debug-index.html" class="button" style="margin-left: 10px;">デバッグページを表示</a>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = 'https://tech0-gen-8-step4-sakepara-backend-a9e9e5gedfevbtfa.australiasoutheast-01.azurewebsites.net';
+    
+    document.getElementById('testApiRoot').addEventListener('click', async () => {
+      await fetchApi('/');
+    });
+    
+    document.getElementById('testApiUsers').addEventListener('click', async () => {
+      await fetchApi('/users');
+    });
+    
+    async function fetchApi(endpoint) {
+      const resultDiv = document.getElementById('result');
+      const responseElement = document.getElementById('response');
+      
+      resultDiv.style.display = 'block';
+      responseElement.innerText = 'Loading...';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`);
+        const data = await response.json();
+        
+        responseElement.innerText = JSON.stringify(data, null, 2);
+      } catch (error) {
+        responseElement.innerText = `エラーが発生しました: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html> 

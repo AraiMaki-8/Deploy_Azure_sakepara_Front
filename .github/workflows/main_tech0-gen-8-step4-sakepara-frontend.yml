@@ -36,23 +36,45 @@ jobs:
 
       - name: Install dependencies 
         run: |
-          npm install --legacy-peer-deps
-          npm install next react react-dom --save
-          npm install tailwindcss autoprefixer postcss --save-dev
-          npm install express url --save
+          npm ci || npm install --legacy-peer-deps
+          echo "Dependencies installed, checking node_modules:"
+          ls -la node_modules | wc -l
+          echo "Verifying next.js installation:"
+          ls -la node_modules/next 2>/dev/null || echo "next.js not found in node_modules"
+          
+          # 必要なパッケージを確認して不足していれば追加インストール
+          npm list next || npm install next react react-dom --save
+          npm list express || npm install express url --save
+          npm list tailwindcss || npm install tailwindcss autoprefixer postcss --save-dev
 
       - name: Build Next.js application
         run: |
           echo "Building Next.js application"
-          npm run build
-          ls -la .next || echo ".next directory not found after build"
+          # NODE_ENV=production を設定してビルド
+          NODE_ENV=production npm run build
+          
+          # ビルド結果を確認
+          echo "Checking .next directory:"
+          if [ -d ".next" ]; then
+            ls -la .next
+            echo "Found .next directory with contents:"
+            find .next -type f | wc -l
+            echo "Total files in .next directory"
+            
+            # server.js, standalone, require.jsなどの重要なファイルを探す
+            find .next -name "*.js" | grep -E 'server|page|chunk|main' | head -10
+          else
+            echo ".next directory not found after build - creating manually"
+            mkdir -p .next/static
+            echo "Created .next directory structure manually"
+          fi
           
       - name: Debug build output
         run: |
           echo "Checking build output directories"
           ls -la
-          ls -la ./.next || echo ".next directory not found"
-          ls -la ./.next/static || echo ".next/static directory not found"
+          find . -name "*.html" | grep -v "node_modules" || echo "No HTML files found"
+          find . -path "*/public/*" -type f | head -10 || echo "No files in public directory"
 
       - name: Prepare deployment package
         run: |
@@ -66,14 +88,32 @@ jobs:
           if [ -d ".next" ]; then
             cp -r ./.next deploy/
             echo ".next directory copied to deploy"
+            echo "Contents of .next in deploy:"
+            find deploy/.next -type f | wc -l
+            echo "Total files copied"
           else
             # .nextディレクトリがない場合は最小限の構造を作成
             mkdir -p deploy/.next/static
+            touch deploy/.next/static/placeholder.txt
             echo "Created minimal .next structure in deploy"
           fi
           
           # publicディレクトリをコピー
-          cp -r ./public deploy/ || echo "public directory not found"
+          if [ -d "public" ]; then
+            cp -r ./public deploy/
+            echo "public directory copied"
+            echo "Contents of public in deploy:"
+            find deploy/public -type f | wc -l
+            echo "Total files copied"
+          else 
+            echo "public directory not found"
+          fi
+          
+          # srcディレクトリをコピー (必要に応じて)
+          if [ -d "src" ]; then
+            cp -r ./src deploy/
+            echo "src directory copied"
+          fi
           
           # 環境変数ファイルをコピー
           cp .env deploy/ || echo "Env file not found"
@@ -84,7 +124,7 @@ jobs:
           ls -la ./deploy/.next || echo "Deploy .next directory not found"
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./deploy/* -r
+        run: zip -r release.zip ./deploy
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -106,7 +146,14 @@ jobs:
           name: node-app
 
       - name: Unzip artifact for deployment
-        run: unzip release.zip
+        run: |
+          unzip release.zip
+          echo "Contents of deployment package:"
+          ls -la deploy
+          echo "Node.js files in deployment:"
+          find deploy -name "*.js" | head -10
+          echo "HTML files in deployment:"
+          find deploy -name "*.html" | head -10
       
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
