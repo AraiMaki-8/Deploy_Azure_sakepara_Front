@@ -26,6 +26,7 @@ jobs:
       - name: npm install and build
         run: |
           npm install
+          npm install tailwindcss autoprefixer postcss
           npm run build --if-present
           
       - name: Debug build output
